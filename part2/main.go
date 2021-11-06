@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -35,10 +34,18 @@ func main() {
 	filename := flag.String("filename", "problems.csv", "Questions and answers are inside csv file.")
 	limit := flag.Int("limit", 30, "After reach decided time, program will be stop.")
 	flag.Parse()
-	timer := time.NewTimer(time.Second * time.Duration(*limit))
 	records := readCsvFile(*filename)
 	score := scores{correct: 0, wrong: 0, totalQuest: len(records)}
+	timer := time.NewTimer(time.Second * time.Duration(*limit))
+
 	for _, array := range records {
+		fmt.Printf("%s: ", array[0])
+		answerCh := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			answerCh <- answer
+		}()
 		select {
 		case <-timer.C:
 			fmt.Println("Total Score")
@@ -47,17 +54,12 @@ func main() {
 			fmt.Println("Total correct answers: ", score.correct)
 			fmt.Println("Total wrong answers: ", score.wrong)
 			return
-		default:
-			fmt.Printf("%s: ", array[0])
-			reader := bufio.NewReader(os.Stdin)
-			answer, _ := reader.ReadString('\n')
-			answer = answer[:len(answer)-2] // WHY ???
+		case answer := <-answerCh:
 			if array[1] == answer {
 				score.correct += 1
 			} else {
 				score.wrong += 1
 			}
-			timer.Reset(time.Second * time.Duration(*limit))
 		}
 	}
 	fmt.Println("Total Score")
